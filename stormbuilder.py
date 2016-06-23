@@ -5,6 +5,10 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as ani
 
 def read_from_ncfolder(infolder, files=False):
+    """
+    opens a folder full of nc files which are in order when alphabetized
+    nc files must each have a 2-d variable 'precip_rate' which holds precipitation valueas at each gridcell
+    """
     if not files:
         files = sorted(os.listdir(infolder))
     P = []
@@ -17,6 +21,10 @@ def read_from_ncfolder(infolder, files=False):
     return P
 
 def netvalue(P, weight_mask=1):
+    """
+    computes the total precipitation volume for the entire storm for use when re-aligning the projected storm with the original
+    setting weight mask to a 2-d array of weights from 0-1 changes the weight of each cell. This is useful when a non-square control area is needed ie. a watershed
+    """
     Nt = P.shape[0]
     runsum = 0
     for i in range(Nt):
@@ -24,9 +32,15 @@ def netvalue(P, weight_mask=1):
     return runsum
 
 def countcells(P):
+    """
+    counts the number of cells with a precip value across the entire dataset for use when re-aligning the projected storm with the origninal 
+    """
     return sum(sum(sum(P>0)))
 
 def allignPrecip(Pold,Pnew, weight_mask=1):
+    """
+    confirms that the same number of cells have precipitaion values in the projected storm as in the original and that the total precipitaion is the same
+    """
     Pflat = Pnew.flatten()
     Pflat.sort()
     lowval = Pflat[-countcells(Pold)]
@@ -38,11 +52,17 @@ def allignPrecip(Pold,Pnew, weight_mask=1):
     
 
 def buildSpectrum(P):
+    """
+    reduces the storm to a 3-d power spectrum using a fft
+    """
     Pf = np.fft.fftn(P)
     Ps = np.abs(Pf)**2
     return Ps
 
 def plotSpectrum(Ps):
+    """
+    plots the power spectrum if you are into that
+    """
     plt.figure(1)
     plt.clf()
     plt.imshow( np.log10( Ps[0,:,:] ))
@@ -51,6 +71,9 @@ def plotSpectrum(Ps):
     plt.show()
 
 def plotRainvid(P):
+    """
+    shows a video of the precipitation event
+    """
     Nt = P.shape[0]
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -69,6 +92,9 @@ def plotRainvid(P):
 
 
 def reproject(Ps, seed=False):
+    """
+    using the powerspectrum from the original storm, creates a new storm with the same power specturm but redistributed over space and time
+    """
     if seed:
         np.random.seed(seed)
     Pf = np.sqrt(Ps)*np.exp(complex(0,1)*np.random.uniform(0.0,np.pi*2,Ps.shape))
